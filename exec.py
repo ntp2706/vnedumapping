@@ -231,3 +231,38 @@ def main() -> None:
 
 if __name__ == "__main__":
 	main()
+
+# MAPPING
+# | STT | Cột nguồn | Cột đích   | Nội dung                  |
+# | --: | --------- | ---------- | ------------------------- |
+# |   1 | H         | —          | Trạng thái                |
+# |   2 | C         | D          | Mã MOET                   |
+# |   3 | D         | F          | Họ và tên                 |
+# |   4 | E         | G          | Ngày sinh                 |
+# |   5 | F         | I          | Giới tính                 |
+# |   6 | G         | AD         | Dân tộc                   |
+# |   7 | J         | H          | Ngày vào trường           |
+# |   8 | P         | J          | Quốc tịch                 |
+# |   9 | Q         | R          | Tỉnh/Thành phố thường trú |
+# |  10 | R         | Q          | Xã/Phường thường trú      |
+# |  11 | U         | O          | SN/Xóm thường trú         |
+# |  12 | T         | U          | Tỉnh/thành phố nơi sinh   |
+# |  13 | V         | X          | Tỉnh/thành phố quê quán   |
+# |  14 | W         | W          | Xã/Phường phố quê quán    |
+# |  15 | X         | V          | Thông tin quê quán        |
+# |  16 | Y         | N, M, K    | Chỗ ở hiện nay            |
+# |  17 | Z         | AP         | Điện thoại SLL            |
+# |  18 | AB        | AU         | Khuyết tật                |
+# |  19 | AC        | AF         | Diện chính sách           |
+# |  20 | AP        | AA         | Căn cước                  |
+# |  21 | AQ        | AB         | Ngày cấp căn cước         |
+# |  22 | AR        | AC         | Nơi cấp căn cước          |
+# |  23 | AS        | AI         | Đội viên                  |
+# |  24 | BI        | AJ         | Tên cha                   |
+# |  25 | BJ        | AK         | Nghề nghiệp cha           |
+# |  26 | BK        | AL         | Năm sinh cha              |
+# |  27 | BM        | AM         | Tên mẹ                    |
+# |  28 | BN        | AN         | Nghề nghiệp mẹ            |
+# |  29 | BO        | AO         | Năm sinh mẹ               |
+# |  30 | A         | —          | Số thứ tự                 |
+# |  31 | AE        | —          | Tôn giáo                  |
