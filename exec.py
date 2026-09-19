@@ -154,8 +154,8 @@ def copy_template(template_path: Path):
 
 
 def map_workbooks(input_path: Path, template_path: Path, output_path: Path) -> int:
-	input_book = openpyxl.load_workbook(input_path, data_only=False, read_only=True)
-	input_sheet = input_book.active
+	input_book = openpyxl.load_workbook(input_path, data_only=False, read_only=False)
+	input_sheet = input_book["Sheet1"]
 	source_book, output_book = copy_template(template_path)
 	output_sheet = output_book.get_sheet("ds học sinh")
 
@@ -201,19 +201,32 @@ def map_workbooks(input_path: Path, template_path: Path, output_path: Path) -> i
 	return sequence - 1
 
 
-def process_file(input_path: Path, template_path: Path, output_path: Path) -> int:
-	"""Process one input workbook and write one output workbook."""
-	return map_workbooks(input_path, template_path, output_path)
-
-
 def main() -> None:
 	parser = argparse.ArgumentParser(description=__doc__)
-	parser.add_argument("--input", type=Path, default=Path("Danh_sach_hoc_sinh.xlsx"))
 	parser.add_argument("--template", type=Path, default=Path("vnedu.xls"))
-	parser.add_argument("--output", type=Path, default=Path("vnedu.xls"))
 	arguments = parser.parse_args()
-	count = process_file(arguments.input, arguments.template, arguments.output)
-	print(f"Đã map {count} học sinh vào {arguments.output}")
+
+	from tkinter import Tk, filedialog
+
+	root = Tk()
+	root.withdraw()
+	input_paths = filedialog.askopenfilenames(
+		title="Chọn file danh sách học sinh",
+		filetypes=(("Excel files", "*.xlsx *.xls"), ("All files", "*.*")),
+	)
+	root.destroy()
+
+	if not input_paths:
+		print("Không có file nào được chọn.")
+		return
+
+	for input_path_string in input_paths:
+		input_path = Path(input_path_string)
+		output_path = input_path.with_name(f"output{input_path.stem}.xls")
+		count = map_workbooks(input_path, arguments.template, arguments.template)
+		shutil.copy2(arguments.template, output_path)
+		print(f"Đã map {count} học sinh vào {arguments.template}")
+		print(f"Đã sao chép kết quả vào {output_path}")
 
 
 if __name__ == "__main__":
