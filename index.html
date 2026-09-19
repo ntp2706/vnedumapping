@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="vi">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>vnEdu Mapping</title>
+	<style>
+		:root { --ink: #17232b; --muted: #66747b; --paper: #f4f1e9; --teal: #087f73; --gold: #e8a52b; --line: #d7d4c9; }
+		* { box-sizing: border-box; }
+		body { margin: 0; min-height: 100vh; color: var(--ink); font-family: Georgia, "Times New Roman", serif; background: radial-gradient(circle at 85% 10%, #f8d99a 0 8%, transparent 28%), linear-gradient(135deg, #e9eee8, var(--paper) 48%, #d8e6df); }
+		main { width: min(900px, calc(100% - 32px)); margin: 0 auto; padding: 72px 0 56px; }
+		.kicker { color: var(--teal); font: 700 12px/1.2 Arial, sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+		h1 { max-width: 680px; margin: 12px 0 14px; font-size: clamp(42px, 7vw, 76px); line-height: .96; font-weight: 500; letter-spacing: 0; }
+		.intro { max-width: 570px; margin: 0 0 34px; color: var(--muted); font: 17px/1.6 Arial, sans-serif; }
+		.panel { padding: 28px; border: 1px solid rgba(23,35,43,.15); background: rgba(255,255,255,.62); box-shadow: 12px 12px 0 rgba(8,127,115,.1); }
+		.dropzone { display: block; padding: 40px 24px; text-align: center; border: 2px dashed var(--teal); cursor: pointer; background: rgba(255,255,255,.45); transition: background .2s, transform .2s; }
+		.dropzone:hover, .dropzone.dragging { background: #e1f0eb; transform: translateY(-2px); }
+		.dropzone strong { display: block; font-size: 23px; font-weight: 500; }
+		.dropzone span { display: block; margin-top: 9px; color: var(--muted); font: 14px Arial, sans-serif; }
+		input[type=file] { display: none; }
+		.actions { display: flex; align-items: center; gap: 16px; margin-top: 22px; }
+		button { border: 0; padding: 13px 20px; color: white; background: var(--teal); font: 700 14px Arial, sans-serif; cursor: pointer; }
+		button:disabled { opacity: .45; cursor: not-allowed; }
+		#status { color: var(--muted); font: 14px Arial, sans-serif; }
+		#files { display: grid; gap: 9px; margin: 22px 0 0; padding: 0; list-style: none; font: 14px Arial, sans-serif; }
+		#files li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+		.count { color: var(--teal); white-space: nowrap; }
+		@media (max-width: 600px) { main { padding-top: 42px; } .panel { padding: 18px; } .actions { align-items: flex-start; flex-direction: column; } }
+	</style>
+</head>
+<body>
+	<main>
+		<div class="kicker">vnEdu / Data utility</div>
+		<h1>Map danh sách học sinh.</h1>
+		<p class="intro">Chọn một hoặc nhiều file Excel. Hệ thống sẽ xử lý tuần tự, giữ tên file tương ứng và tự tải từng file kết quả về máy.</p>
+		<section class="panel">
+			<label class="dropzone" id="dropzone" for="file-input">
+				<strong>Thả file .xlsx vào đây</strong>
+				<span>hoặc bấm để chọn nhiều file cùng lúc</span>
+			</label>
+			<input id="file-input" type="file" accept=".xlsx" multiple>
+			<ul id="files"></ul>
+			<div class="actions">
+				<button id="process" type="button" disabled>Map và tải kết quả</button>
+				<span id="status">Chưa chọn file</span>
+			</div>
+		</section>
+	</main>
+	<script>
+		const input = document.querySelector('#file-input');
+		const dropzone = document.querySelector('#dropzone');
+		const list = document.querySelector('#files');
+		const processButton = document.querySelector('#process');
+		const status = document.querySelector('#status');
+		let selectedFiles = [];
+
+		function showFiles(files) {
+			selectedFiles = [...files].filter(file => file.name.toLowerCase().endsWith('.xlsx'));
+			list.innerHTML = selectedFiles.map((file, index) => `<li><span>${index + 1}. ${file.name}</span><span>${(file.size / 1024).toFixed(1)} KB</span></li>`).join('');
+			processButton.disabled = selectedFiles.length === 0;
+			status.textContent = selectedFiles.length ? `${selectedFiles.length} file đã xếp hàng` : 'Chưa chọn file .xlsx';
+		}
+
+		input.addEventListener('change', event => showFiles(event.target.files));
+		['dragenter', 'dragover'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.add('dragging'); }));
+		['dragleave', 'drop'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.remove('dragging'); }));
+		dropzone.addEventListener('drop', event => showFiles(event.dataTransfer.files));
+
+		processButton.addEventListener('click', async () => {
+			processButton.disabled = true;
+			status.textContent = 'Đang xử lý tuần tự...';
+			const formData = new FormData();
+			selectedFiles.forEach(file => formData.append('files', file, file.name));
+			try {
+				const response = await fetch('/api/process', { method: 'POST', body: formData });
+				const result = await response.json();
+				if (!response.ok) throw new Error(result.error || 'Xử lý thất bại.');
+				for (const [index, file] of result.files.entries()) {
+					status.textContent = `Đang tải ${index + 1}/${result.files.length}: ${file.filename}`;
+					const download = document.createElement('a');
+					download.href = `/download/${result.job_id}/${encodeURIComponent(file.filename)}`;
+					download.download = file.filename;
+					document.body.appendChild(download);
+					download.click();
+					download.remove();
+					await new Promise(resolve => setTimeout(resolve, 250));
+				}
+				status.textContent = `Hoàn tất ${result.files.length} file.`;
+			} catch (error) {
+				status.textContent = error.message;
+			} finally {
+				processButton.disabled = selectedFiles.length === 0;
+			}
+		});
+	</script>
+</body>
+</html>
