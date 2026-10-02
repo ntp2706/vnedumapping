@@ -1,0 +1,294 @@
+// ==UserScript==
+// @name         vnEdu auto delete account
+// @namespace    http://tampermonkey.net/
+// @version      2.0
+// @description  Auto click 4 fixed positions with visual markers
+// @match        *://*/*
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==
+
+(function () {
+    'use strict';
+
+    // ==========================================
+    // CẤU HÌNH
+    // ==========================================
+
+    const positions = [
+        [20, 90],
+        [380, 65],
+        [720, 380],
+        [760, 380]
+    ];
+
+    // Thời gian giữa mỗi lần click
+    const delay = 500;
+
+    // Kích thước vùng đánh dấu
+    const markerSize = 40;
+
+    // ==========================================
+    // TRẠNG THÁI
+    // ==========================================
+
+    let running = false;
+    let stopped = false;
+
+    // ==========================================
+    // TẠO GIAO DIỆN
+    // ==========================================
+
+    const panel = document.createElement('div');
+
+    panel.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 2147483647;
+        background: rgba(30, 30, 30, 0.95);
+        color: white;
+        padding: 8px;
+        border-radius: 8px;
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        user-select: none;
+    `;
+
+    const playButton = document.createElement('button');
+
+    playButton.textContent = '▶ Play';
+
+    playButton.style.cssText = `
+        padding: 6px 12px;
+        margin-right: 5px;
+        cursor: pointer;
+        border: none;
+        border-radius: 5px;
+        background: #28a745;
+        color: white;
+        font-weight: bold;
+    `;
+
+    const pauseButton = document.createElement('button');
+
+    pauseButton.textContent = '⏸ Pause';
+
+    pauseButton.style.cssText = `
+        padding: 6px 12px;
+        cursor: pointer;
+        border: none;
+        border-radius: 5px;
+        background: #dc3545;
+        color: white;
+        font-weight: bold;
+    `;
+
+    const status = document.createElement('div');
+
+    status.textContent = '● Đang dừng';
+
+    status.style.cssText = `
+        margin-top: 6px;
+        text-align: center;
+        font-size: 12px;
+    `;
+
+    panel.appendChild(playButton);
+    panel.appendChild(pauseButton);
+    panel.appendChild(status);
+
+    document.body.appendChild(panel);
+
+    // ==========================================
+    // TẠO 4 VÙNG ĐÁNH DẤU
+    // ==========================================
+
+    const markers = [];
+
+    positions.forEach(([x, y], index) => {
+
+        const marker = document.createElement('div');
+
+        marker.style.cssText = `
+            position: fixed;
+
+            left: ${x - markerSize / 2}px;
+            top: ${y - markerSize / 2}px;
+
+            width: ${markerSize}px;
+            height: ${markerSize}px;
+
+            background: rgba(120, 220, 255, 0.35);
+
+            border: 2px solid rgba(0, 150, 255, 0.8);
+
+            border-radius: 6px;
+
+            box-sizing: border-box;
+
+            z-index: 2147483646;
+
+            pointer-events: none;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            font-weight: bold;
+
+            color: #005577;
+
+            text-shadow: 0 1px 2px white;
+        `;
+
+        marker.textContent = index + 1;
+
+        document.body.appendChild(marker);
+
+        markers.push(marker);
+    });
+
+    // ==========================================
+    // HÀM ĐỔI MÀU MARKER
+    // ==========================================
+
+    function setMarkerColor(color, borderColor) {
+
+        markers.forEach(marker => {
+
+            marker.style.background = color;
+            marker.style.borderColor = borderColor;
+
+        });
+    }
+
+    // ==========================================
+    // DELAY
+    // ==========================================
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // ==========================================
+    // CLICK
+    // ==========================================
+
+    function clickPosition(x, y, index) {
+
+        const element = document.elementFromPoint(x, y);
+
+        if (!element) {
+
+            console.log(
+                `Không tìm thấy phần tử tại ${x}, ${y}`
+            );
+
+            return;
+        }
+
+        console.log(
+            `Click ${index + 1}: X=${x}, Y=${y}`,
+            element
+        );
+
+        element.click();
+    }
+
+    // ==========================================
+    // VÒNG LẶP
+    // ==========================================
+
+    async function autoClick() {
+
+        if (running) return;
+
+        running = true;
+        stopped = false;
+
+        status.textContent = '● Đang chạy';
+
+        setMarkerColor(
+            'rgba(120, 255, 170, 0.35)',
+            'rgba(0, 180, 80, 0.9)'
+        );
+
+        while (!stopped) {
+
+            for (let i = 0; i < positions.length; i++) {
+
+                if (stopped) break;
+
+                const [x, y] = positions[i];
+
+                // Đánh dấu vị trí đang click
+                markers.forEach((marker, markerIndex) => {
+
+                    if (markerIndex === i) {
+
+                        marker.style.background =
+                            'rgba(255, 230, 50, 0.65)';
+
+                        marker.style.borderColor =
+                            'rgba(255, 170, 0, 1)';
+
+                    } else {
+
+                        marker.style.background =
+                            'rgba(120, 255, 170, 0.35)';
+
+                        marker.style.borderColor =
+                            'rgba(0, 180, 80, 0.9)';
+                    }
+                });
+
+                clickPosition(x, y, i);
+
+                await sleep(delay);
+            }
+        }
+
+        running = false;
+
+        status.textContent = '● Đang dừng';
+
+        setMarkerColor(
+            'rgba(255, 230, 50, 0.45)',
+            'rgba(255, 170, 0, 0.9)'
+        );
+    }
+
+    // ==========================================
+    // PLAY
+    // ==========================================
+
+    playButton.addEventListener('click', () => {
+
+        if (running) return;
+
+        stopped = false;
+
+        autoClick();
+    });
+
+    // ==========================================
+    // PAUSE
+    // ==========================================
+
+    pauseButton.addEventListener('click', () => {
+
+        stopped = true;
+
+        status.textContent = '● Đang dừng';
+
+        setMarkerColor(
+            'rgba(255, 230, 50, 0.45)',
+            'rgba(255, 170, 0, 0.9)'
+        );
+    });
+
+})();
